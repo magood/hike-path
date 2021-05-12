@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import vis
+import shortestpath as sp
 
 
 def create_gaussian(size=10):
@@ -16,23 +17,27 @@ def create_gaussian(size=10):
     return gauss
 
 
+def run(dem, start, end, zrange, num, outdir):
+    for zw in np.linspace(*zrange, num):
+        print(f'Running for z-weight: {zw:.3f}...')
+        dists, prevs = sp.shortest(gauss, start, xy_weight=1.0, z_weight=zw)
+        path = sp.get_path(end, prevs)
+        print(f"Found path from {start} to {end} with cost: {dists[end]}.")
+        print(path)
+        vis.savepath(gauss, path, f'output/{outdir}/path_zw_{zw:.3f}.png')
+
+
+testname = 'gaussiantest'
 gauss = create_gaussian(10)
-gauss = gauss * 5 # Make it a bigger hill :)
+gauss = gauss * 3 # Make it a bigger hill :)
 # Add some randomness to the terrain
 np.random.seed(0)
 r = np.random.rand(10,10)
 gauss = gauss + r
 # Save off the terrain:
-vis.quicksave(gauss, 'output/test/terrain.png')
+vis.quicksave(gauss, f'output/{testname}/terrain.png')
 
-import shortestpath as sp
 start = (gauss.shape[0]-1,0) #Bottom-left
 end = (0,9) # top right
 
-dists, prevs = sp.shortest(gauss, start)
-
-path = sp.get_path(end, prevs)
-print(f"Found path from {start} to {end} with cost: {dists[end]}.")
-print(path)
-# Save the path image
-vis.savepath(gauss, path, 'output/test/path.png')
+run(gauss, start, end, (0,3), 10, testname)

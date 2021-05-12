@@ -10,7 +10,7 @@ def nextNode(dem, dist, R):
     return (mx,my)
 
 
-def shortest(dem, s):
+def shortest(dem, s, xy_weight=1.0, z_weight=1.5):
     dist = np.ones_like(dem) * float("inf")
     dist[s] = 0
     # dist[r,c] is the minimum distance to vertex (r,c) we have found so far.
@@ -22,13 +22,12 @@ def shortest(dem, s):
         out_vertices = npg.locs_out(dem, v)
         for z in out_vertices:
             # Compute some "distance" cost based on various weightings
-            cost_z = 1.5 # TODO take as param.
             # 1 pixel lateral = 10 m
             # 1 unit z = 1m.
             # Hence z_scale = 10.0
-            cost_z = npg.distance(dem, v, z, xy_weight=1.0, z_weight=1.0, z_scale=10.0) # TODO plug in parameterizable vals.
-            if dist[z] > dist[v] + cost_z:
-                dist[z] = dist[v] + cost_z
+            z_cost = npg.distance(dem, v, z, xy_weight=xy_weight, z_weight=z_weight, z_scale=10.0)
+            if dist[z] > dist[v] + z_cost:
+                dist[z] = dist[v] + z_cost
                 # Pretty sure this is where we'd set the prev value as well:
                 prev[z] = v
     # At the end of this, the distance matrix will be the min cost to every node from s
