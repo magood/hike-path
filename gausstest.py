@@ -18,10 +18,11 @@ def create_gaussian(size=10):
 
 
 def run(dem, start, end, zrange, num, outdir):
+    vis.cleardir(f'output/{outdir}')
     for zw in np.linspace(*zrange, num):
         print(f'Running for z-weight: {zw:.3f}...')
         dists, prevs = sp.shortest(gauss, start, xy_weight=1.0, z_weight=zw)
-        path = sp.get_path(end, prevs)
+        path = sp.get_path(gauss, end, prevs)
         print(f"Found path from {start} to {end} with cost: {dists[end]}.")
         print(path)
         vis.savepath(gauss, path, f'output/{outdir}/path_zw_{zw:.3f}.png')
@@ -40,4 +41,4 @@ vis.quicksave(gauss, f'output/{testname}/terrain.png')
 start = (gauss.shape[0]-1,0) #Bottom-left
 end = (0,9) # top right
 
-run(gauss, start, end, (0,3), 10, testname)
+run(gauss, start, end, (0,4), 10, testname)

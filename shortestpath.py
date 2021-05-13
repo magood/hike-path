@@ -17,30 +17,35 @@ def shortest(dem, s, xy_weight=1.0, z_weight=1.5):
     R = np.zeros_like(dem, dtype=bool)
     prev = np.empty_like(dem, dtype=tuple)
     while not np.all(R):
-        v = nextNode(dem, dist, R)
-        R[v] = True
-        out_vertices = npg.locs_out(dem, v)
-        for z in out_vertices:
-            # Compute some "distance" cost based on various weightings
+        u = nextNode(dem, dist, R)
+        R[u] = True
+        out_vertices = npg.locs_out(dem, u)
+        for v in out_vertices:
+            # Compute some "distance" cost from u to v based on various weightings
             # 1 pixel lateral = 10 m
             # 1 unit z = 1m.
             # Hence z_scale = 10.0
-            z_cost = npg.distance(dem, v, z, xy_weight=xy_weight, z_weight=z_weight, z_scale=10.0)
-            if dist[z] > dist[v] + z_cost:
-                dist[z] = dist[v] + z_cost
-                # Pretty sure this is where we'd set the prev value as well:
-                prev[z] = v
+            uv_dist = npg.distance(dem, u, v, xy_weight=xy_weight, z_weight=z_weight, z_scale=10.0)
+            if dist[v] > dist[u] + uv_dist:
+                dist[v] = dist[u] + uv_dist
+                # Mark the previous vertex, leave the breadcrumbs
+                prev[v] = u
     # At the end of this, the distance matrix will be the min cost to every node from s
     # And the previous vertex array
     return dist, prev
 
 
-def get_path(end, prevs):
+def get_path(dem, end, prevs):
     path = []
     path.append(end)
     p = end
+    c = 0
+    maxpathlen = dem.shape[0] * dem.shape[1]
     while p is not None:
+        if c > maxpathlen:
+            raise Exception("ERROR: Path has cycles. Are all costs positive?")
         p = prevs[p]
         if p is not None:
             path.append(p)
+            c += 1
     return list(reversed(path))

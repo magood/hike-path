@@ -30,11 +30,18 @@ def locs_out(arr, vertex):
 def distance(arr, u, v, xy_weight=1.0, z_weight=1.0, z_scale=1.0):
     rowdist = abs(u[0] - v[0])
     coldist = abs(u[1] - v[1])
-    zdist = abs(arr[u] - arr[v])
+    # zdist is height difference in the terrain.
+    # This is subjective, but going up is harder than going down
+    # (though going down can be hard on joints, too)
+    # So reflect that in the cost
+    zdist = arr[v] - arr[u]
     # Cheat the actual formula:
     xydist = rowdist + coldist
     if xydist == 2:
         xydist = ROOTTWO
     # Scale the z dist so that it is the same units as the xydist
     zdist = zdist * z_scale
-    return xy_weight * xydist + z_weight * zdist
+    zcost = z_weight * zdist
+    if zcost < 0:
+        zcost = abs(zdist) # If we're going down, just account for the extra distance traveled, not the climb.
+    return xy_weight * xydist + zcost
