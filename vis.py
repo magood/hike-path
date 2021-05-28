@@ -7,17 +7,37 @@ import glob
 
 def quicksave(arr, fn):
     plt.clf()
-    plt.imshow(arr)
+    terrain_plt = plt.imshow(arr)
+    plt.colorbar(terrain_plt)
+    plt.savefig(fn)
+
+
+def savegoals(arr, start, end, fn):
+    """Saves an image of the terrain with start and end points marked"""
+    plt.clf()
+    terrain_plt = plt.imshow(arr)
+    plt.colorbar(terrain_plt)
+    plt.scatter(start[1], start[0], marker="p", color="green", zorder=2)
+    plt.scatter(end[1], end[0], marker="X", color="blue", zorder=2)
     plt.savefig(fn)
 
 def savepath(arr, path, fn):
     plt.clf()
-    plt.imshow(arr)
+    terrain_plt = plt.imshow(arr)
+    plt.colorbar(terrain_plt)
     p = np.array(path)
     r = p[:,0]
     c = p[:,1]
-    plt.plot(c,r, linewidth=3, color='red')
-    plt.savefig(fn)
+    plt.plot(c,r, linewidth=1, color='red', zorder=1)
+    # Get start and end so we can plot markers:
+    start = path[0]
+    end = path[-1]
+    plt.scatter(start[1], start[0], marker="p", color="green", zorder=2)
+    plt.scatter(end[1], end[0], marker="X", color="blue", zorder=2)
+    figure = plt.gcf() # get current figure
+    figure.set_size_inches(8, 6)
+    # when saving, specify the DPI
+    plt.savefig(fn, dpi=100)
 
 
 # Thanks to: https://stackoverflow.com/questions/3812849/how-to-check-whether-a-directory-is-a-sub-directory-of-another-directory

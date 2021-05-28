@@ -27,7 +27,8 @@ def locs_out(arr, vertex):
     return out_locs
 
 
-def distance(arr, u, v, xy_weight=1.0, z_weight=1.0, z_scale=1.0):
+def distance(arr, u, v, xy_weight=1.0, z_weight=1.0, z_scale=1.0, down_penalty=0.25):
+    """A "hiking" distance/cost function, factoring in lateral distance and height changes."""
     rowdist = abs(u[0] - v[0])
     coldist = abs(u[1] - v[1])
     # zdist is height difference in the terrain.
@@ -43,5 +44,6 @@ def distance(arr, u, v, xy_weight=1.0, z_weight=1.0, z_scale=1.0):
     zdist = zdist * z_scale
     zcost = z_weight * zdist
     if zcost < 0:
-        zcost = abs(zdist) # If we're going down, just account for the extra distance traveled, not the climb.
+        #penalty for going down is proportional to the z-cost.
+        zcost = abs(zcost) * down_penalty
     return xy_weight * xydist + zcost

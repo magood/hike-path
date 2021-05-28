@@ -1,23 +1,80 @@
 import rasterio
+from rasterio.enums import Resampling
 import numpy as np
+import vis
+import shortestpath as sp
+from devtools import debug
+from dem_xform import setup_full_dem, grow_bounds, scale_pos
+import trails_csv_reader as trails
 
 
-ds = rasterio.open('data/USGS_13_n40w108_20210312.tif', 'r')
-ds.shape # (10812, 10812)
-arr = ds.read() # Reads ALL the values. May take a while and eat all yer RAM.
-# arr is now a numpy ndarray, (layer, row, col) of float32 values
+def smaller(scale_factor = 1/50):
+    ds = rasterio.open('data/USGS_13_n40w107_20210312.tif', 'r')
+    ds.shape # (10812, 10812)
+    
+    print(f'starting coordinates: {trails.start_coords}')
+    start = ds.index(trails.start_coords[1], trails.start_coords[0]) # r,c coords in the ds shape
+    print(f"starting r,c: {start}")
+    # And similarly, set an interesting endpoint from an AllTrails sample, using the max elevation:
+    hp = trails.get_highest_point()
+    print(f"summit coordinates: {hp}")
+    # About 614 meters, ~2k feet
+    end = ds.index(hp[1], hp[0]) #r,c coords in the ds shape
+    print(f"ending r,c: {end}")
 
-# Set a start and end point
-# Define the weighting tradeoff between distance and climb
-# Write adjacency functions to make the array behave as a graph
-# Do shortest path iterations, create and save images, build a gif.
+    data = ds.read(
+        out_shape=(
+            ds.count,
+            int(ds.height * scale_factor),
+            int(ds.width * scale_factor)
+        ),
+        resampling=Resampling.bilinear
+    )
+    data.shape # (1, 216, 216)
+    # scale image transform
+    transform = ds.transform * ds.transform.scale(
+        (ds.width / data.shape[-1]),
+        (ds.height / data.shape[-2])
+    )
+    dem = data[0]
+    # Transform the start/end into the new scaled dims
+    start = scale_pos(start, scale_factor, dem.shape)
+    end = scale_pos(end, scale_factor, dem.shape)
 
-# According to my AllTrails data I started here:
-start = [39.02472000,-107.051090]
-# And similarly, set an interesting endpoint from an AllTrails sample, using the max elevation:
-from trails_csv_reader import get_highest_point
-hp = get_highest_point()
-end = [hp[0], hp[1]]
+    testname = 'maroon_sm'
+    outdir = testname
+    zw = 1.5
+    vis.cleardir(f'output/{outdir}')
+    print(f'Running for z-weight: {zw:.3f}...')
+    dists, prevs = sp.shortest(dem, start, xy_weight=1.0, z_weight=zw)
+    path = sp.get_path(dem, end, prevs)
+    print(f"Found path from {start} to {end} with cost: {dists[end]}.")
+    # print(path)
+    vis.savepath(dem, path, f'output/{outdir}/path_zw_{zw:.3f}.png')
+
+
+def fullscale():
+    ds = rasterio.open('data/USGS_13_n40w108_20210312.tif', 'r')
+    ds.shape # (10812, 10812)
+    arr = ds.read() # Reads ALL the values. May take a while and eat all yer RAM.
+    # arr is now a numpy ndarray, (layer, row, col) of float32 values
+
+    # Set a start and end point
+    # Define the weighting tradeoff between distance and climb
+    # Write adjacency functions to make the array behave as a graph
+    # Do shortest path iterations, create and save images, build a gif.
+
+    # According to my AllTrails data I started here:
+    start = [39.02472000,-107.051090]
+    # And similarly, set an interesting endpoint from an AllTrails sample, using the max elevation:
+    from trails_csv_reader import get_highest_point
+    hp = get_highest_point()
+    end = [hp[0], hp[1]]
+
+
+if __name__ == '__main__':
+    with debug.timer('Scaled-down test'):
+        smaller()
 
 # Some example python on this dem:
 # >>> ds.bounds

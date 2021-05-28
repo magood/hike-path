@@ -25,6 +25,9 @@ def shortest(dem, s, xy_weight=1.0, z_weight=1.5):
             # 1 pixel lateral = 10 m
             # 1 unit z = 1m.
             # Hence z_scale = 10.0
+            # TODO rework lateral distances - the 3DEP resolution is 1/3 arcsecond of a degree. This is NOT the same distance N/S as W/E.
+            # "Ground spacing is approximately 10 meters north/south, but variable east/west due to convergence of meridians with latitude."
+            # np_asgraph shouldn't know about the unit conversions.
             uv_dist = npg.distance(dem, u, v, xy_weight=xy_weight, z_weight=z_weight, z_scale=10.0)
             if dist[v] > dist[u] + uv_dist:
                 dist[v] = dist[u] + uv_dist
