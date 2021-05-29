@@ -20,12 +20,12 @@ def get_cropped_dem(endpoint):
     start = (start[0] - extent_tl[0], start[1] - extent_tl[1])
     end = (end[0] - extent_tl[0], end[1] - extent_tl[1])
     vis.savegoals(dem, start, end, 'data/study_area.preview.png')
-    return dem, start, end
+    return dem, start, end, extent_tl
 
 
 def get_cropped_scaled_dem(endpoint, sf=1/10):
     # Use Pillow to do the image resize - this is just easier
-    dem, s1, e1 = get_cropped_dem(endpoint)
+    dem, s1, e1, offset = get_cropped_dem(endpoint)
     dem_im = Image.fromarray(dem)
     (width, height) = (int(round(dem_im.width * sf)), int(round(dem_im.height * sf)))
     im_resized = dem_im.resize((width, height))
@@ -33,11 +33,12 @@ def get_cropped_scaled_dem(endpoint, sf=1/10):
     # Appropriately scale start and end points to new image size:
     s = dem_xform.scale_pos(s1, sf, sm_dem.shape)
     e = dem_xform.scale_pos(e1, sf, sm_dem.shape)
+    #offset_scaled = dem_xform.scale_pos(offset, sf, sm_dem.shape)
     vis.savegoals(sm_dem, s, e, f'data/study_area_sf_{sf:.3f}.preview.png')
-    return sm_dem, s, e
+    return sm_dem, s, e, offset
 
 
-def run(dem, start, end, sf=1.0, testname = 'hike', zw=1.5):
+def run(dem, start, end, sf=1.0, testname = 'hike', hikedpath=None, zw=1.5):
     outdir = testname
     # adjust the lateral weights for any scaling that has been done.
     scaleweighting = 1 / sf
@@ -45,7 +46,12 @@ def run(dem, start, end, sf=1.0, testname = 'hike', zw=1.5):
     dists, prevs = sp.shortest(dem, start, xy_weight=scaleweighting, z_weight=zw)
     path = sp.get_path(dem, end, prevs)
     print(f"Found path from {start} to {end} with cost: {dists[end]}.")
-    vis.savepath(dem, path, f'output/{outdir}/path_zw_{zw:.3f}.png')
+    title = f"{testname} xw={zw:.3f}"
+    if hikedpath:
+        hpath = np.array(hikedpath)
+        vis.savepath_withhike(dem, path, hpath, f'output/{outdir}/path_zw_{zw:.3f}.png', title=title)
+    else:
+        vis.savepath(dem, path, f'output/{outdir}/path_zw_{zw:.3f}.png', title=title)
 
 
 def iterative_run(dem, start, end, sf=1.0, testname = 'hike', n=5, maxweight=4):
@@ -59,34 +65,42 @@ def iterative_run(dem, start, end, sf=1.0, testname = 'hike', n=5, maxweight=4):
     t.summary(verbose=True)
 
 
-def multi_iterative_run(dem, start, end, sf=1.0, testname = 'hike', n=5, maxweight=4):
+def multi_iterative_run(dem, start, end, sf=1.0, testname = 'hike', n=5, maxweight=4, hikedpath=None):
     """Use multiprocessing to run for a range of values at once"""
     z_weights = np.linspace(0, maxweight, n)
     vis.cleardir(f'output/{testname}')
-    runfunc = partial(run, dem, start, end, sf, testname)
+    runfunc = partial(run, dem, start, end, sf, testname, hikedpath)
     with multiprocessing.Pool(4) as p:
         p.map(runfunc, z_weights)
 
 
+def get_my_hike(offset, sf):
+    hikedpath = trails.get_path_points()
+    adj_hikedpath = dem_xform.scale_offset_points(hikedpath, offset, sf)
+    return adj_hikedpath
+
+
 def first_summit_run():
-    scale = 1/6
+    # 1/6 scale, max weight 4, n=10 provided some interesting results.
+    scale = 1/4 #1/4
     hp = trails.get_highest_point()
-    dem, s, e = get_cropped_scaled_dem(hp, sf=scale)
+    dem, s, e, offset = get_cropped_scaled_dem(hp, sf=scale)
+    hikedpath = get_my_hike(offset, scale)
     # Note that if you scale down the dem, you should also scale down the verticals?
     # Or otherwise account for this in the distance calculation using the inverse scale factor.
     print(f"Starting shortest path runs on scaled DEM of shape {dem.shape} from {s} to {e}...")
-    multi_iterative_run(dem, s, e, sf=scale, maxweight=4, n=10, testname = 'maroon_sm')
+    multi_iterative_run(dem, s, e, sf=scale, maxweight=2, n=50, hikedpath=hikedpath, testname = 'maroon_sm')
 
 
 def second_summit_run():
-    scale = 1/10
-    dem, s, e = get_cropped_scaled_dem(trails.second_summit, sf=scale)
-    # Note that if you scale down the dem, you should also scale down the verticals?
-    # Or otherwise account for this in the distance calculation using the inverse scale factor.
+    scale = 1/4  #1/4
+    dem, s, e, offset = get_cropped_scaled_dem(trails.second_summit, sf=scale)
+    hikedpath = get_my_hike(offset, scale)
     print(f"Starting shortest path runs on scaled DEM of shape {dem.shape} from {s} to {e}...")
-    multi_iterative_run(dem, s, e, sf=scale, maxweight=4, n=10, testname = 'maroon2_sm')
+    multi_iterative_run(dem, s, e, sf=scale, maxweight=2, n=50, hikedpath=hikedpath, testname = 'maroon2_sm')
 
 
 if __name__ == '__main__':
     second_summit_run()
     first_summit_run()
+    #overlay_run()

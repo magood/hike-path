@@ -7,11 +7,22 @@ import vis
 from devtools import debug
 
 
+def get_index(ds, coords):
+    point = ds.index(coords[1], coords[0]) #poin is r,c index in the ds shape
+    return point
+
+
 def scale_pos(pos, scale_factor, shape):
     """Scale a position in a resized image, ensuring the resulting position remains within the bounds of the image."""
     scaled = (round(pos[0] * scale_factor), round(pos[1] * scale_factor))
     scaled = (min(scaled[0], shape[0]-1), min(scaled[1], shape[1]-1))
     return scaled
+
+
+def scale_offset_points(points, offset, sf):
+    """Translate points to account for offset, scale to acount for scale factor sf."""
+    pts = [( int(round((p[0]-offset[0]) * sf)), int(round((p[1]-offset[1]) * sf))) for p in points]
+    return pts
 
 
 def create_merged_dem():

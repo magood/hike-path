@@ -21,22 +21,42 @@ def savegoals(arr, start, end, fn):
     plt.scatter(end[1], end[0], marker="X", color="blue", zorder=2)
     plt.savefig(fn)
 
-def savepath(arr, path, fn):
+
+def generatepathplot(arr, path):
     plt.clf()
     terrain_plt = plt.imshow(arr)
     plt.colorbar(terrain_plt)
     p = np.array(path)
     r = p[:,0]
     c = p[:,1]
-    plt.plot(c,r, linewidth=1, color='red', zorder=1)
+    plt.plot(c,r, linewidth=1, color='red', zorder=2)
     # Get start and end so we can plot markers:
     start = path[0]
     end = path[-1]
-    plt.scatter(start[1], start[0], marker="p", color="green", zorder=2)
-    plt.scatter(end[1], end[0], marker="X", color="blue", zorder=2)
-    figure = plt.gcf() # get current figure
+    plt.scatter(start[1], start[0], marker="p", color="green", zorder=3)
+    plt.scatter(end[1], end[0], marker="X", color="blue", zorder=3)
+    return plt
+
+
+def savepath(arr, path, fn, title=None):
+    plt = generatepathplot(arr, path)
+    if title:
+        plt.title(title)
+    figure = plt.gcf()
     figure.set_size_inches(8, 6)
-    # when saving, specify the DPI
+    plt.savefig(fn, dpi=100)
+
+
+def savepath_withhike(arr, path, actualpath, fn, title=None):
+    plt = generatepathplot(arr, path)
+    #overlay actual hiked path:
+    r = actualpath[:,0]
+    c = actualpath[:,1]
+    plt.plot(c,r, linewidth=2, color='gray', zorder=1)
+    if title:
+        plt.title(title)
+    figure = plt.gcf()
+    figure.set_size_inches(8, 6)
     plt.savefig(fn, dpi=100)
 
 
