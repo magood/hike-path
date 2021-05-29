@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import glob
+from PIL import Image
 
 
 def quicksave(arr, fn):
@@ -77,3 +78,12 @@ def cleardir(dir):
         for f in files:
             print(f"removing file: {f}")
             os.remove(f)
+
+
+def creategif(dir, duration=250):
+    imgs_fn = glob.glob(f"{dir}/*.png")
+    gifimgs = []
+    for fn in sorted(imgs_fn):
+        gifimgs.append(Image.open(fn))
+    if len(gifimgs) > 1:
+        gifimgs[0].save(f'{dir}/animation.gif', save_all=True, append_images=gifimgs[1:], duration=duration, optimize=False, loop=0)
